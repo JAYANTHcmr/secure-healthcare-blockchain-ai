@@ -1,60 +1,66 @@
-const express = require("express");
-const Web3 = require("web3");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const contract = require("../blockchain/build/contracts/PatientRecords.json");
+import express from "express";
+import cors from "cors";
+import axios from "axios";
+import Web3 from "web3";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// Connect to Ganache local blockchain
+// Needed for ES module path handling
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Connect to Ganache (blockchain)
 const web3 = new Web3("http://127.0.0.1:7545");
 
-// Replace with your deployed contract address
-const contractAddress = "0x4a9E0E403d984AcDeE55C01FC08eeD2068e59B50";
-const contractInstance = new web3.eth.Contract(contract.abi, contractAddress);
+// Load the compiled contract
+const contractPath = path.resolve(__dirname, "../blockchain/build/contracts/PatientRecords.json");
+const contractJSON = JSON.parse(fs.readFileSync(contractPath));
+const contractAddress = "0x4a9E0E403d984AcDeE55C01FC08eeD2068e59B50"; // your contract address here
+const contract = new web3.eth.Contract(contractJSON.abi, contractAddress);
 
-// Get available accounts
-let account;
-web3.eth.getAccounts().then((acc) => {
-  account = acc[0];
-  console.log("✅ Connected account:", account);
-});
+let accounts = [];
+(async () => {
+  accounts = await web3.eth.getAccounts();
+  console.log("✅ Connected account:", accounts[0]);
+})();
 
-// API to add patient record
-app.post("/addRecord", async (req, res) => {
-  const { name, age, diagnosis } = req.body;
-
+// ===================== Blockchain API =====================
+app.post("/api/addRecord", async (req, res) => {
   try {
-    await contractInstance.methods
-      .addRecord(name, age, diagnosis)
-      .send({ from: account, gas: 3000000 });
-
-    res.json({ success: true, message: "Record added successfully!" });
+    const { name, age, diagnosis } = req.body;
+    const result = await contract.methods.addRecord(name, age, diagnosis).send({ from: accounts[0], gas: 3000000 });
+    res.json({ message: "Record added successfully", transaction: result.transactionHash });
   } catch (error) {
-    console.error("❌ Error adding record:", error);
-    res.status(500).json({ success: false, message: "Failed to add record" });
+    console.error(error);
+    res.status(500).json({ error: "Transaction failed" });
   }
 });
 
-// API to fetch patient record by address
-app.get("/getRecord/:address", async (req, res) => {
+// ===================== AI Service Integration =====================
+app.post("/api/analyze", async (req, res) => {
   try {
-    const record = await contractInstance.methods
-      .getRecord(req.params.address)
-      .call();
+    const { age, diagnosis } = req.body;
+
+    const aiResponse = await axios.post("http://127.0.0.1:7000/predict", {
+      age,
+      diagnosis,
+    });
 
     res.json({
-      name: record[0],
-      age: record[1],
-      diagnosis: record[2],
+      message: "AI analysis successful",
+      prediction: aiResponse.data,
     });
   } catch (error) {
-    console.error("❌ Error fetching record:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch record" });
+    console.error("Error calling AI service:", error.message);
+    res.status(500).json({ error: "AI service unavailable" });
   }
 });
 
-// Start the server
-app.listen(5000, () => console.log("🚀 Server running on port 5000"));
+// Start server
+const PORT = 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
