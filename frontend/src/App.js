@@ -15,6 +15,12 @@ function App() {
   // Connect to blockchain and smart contract
   const loadBlockchain = async () => {
     if (window.ethereum) {
+// 🔴 FORCE MetaMask to Ganache
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0x539" }], // Ganache (1337)
+    });
+
       const web3 = new Web3(window.ethereum);
       await window.ethereum.request({ method: "eth_requestAccounts" });
       const accounts = await web3.eth.getAccounts();
