@@ -1,3 +1,4 @@
+import { create } from "ipfs-http-client";
 import express from "express";
 import cors from "cors";
 import axios from "axios";
@@ -5,6 +6,13 @@ import Web3 from "web3";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+
+const ipfs = create({
+  host: "localhost",
+  port: 5001,
+  protocol: "http",
+});
+
 
 const app = express();
 app.use(cors());
@@ -62,6 +70,21 @@ app.post("/api/addRecord", async (req, res) => {
     res.status(500).json({ error: "Transaction failed" });
   }
 });
+
+app.post("/upload-report", async (req, res) => {
+  try {
+    const { reportText } = req.body;
+
+    const result = await ipfs.add(reportText);
+
+    res.json({
+      ipfsHash: result.path,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "IPFS upload failed" });
+  }
+});
+
 
 // ===================== AI Service Integration =====================
 app.post("/api/analyze", async (req, res) => {

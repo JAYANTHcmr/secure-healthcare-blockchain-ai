@@ -46,25 +46,44 @@ const addRecord = async () => {
   }
 
   try {
-    // 1️⃣ Save record to blockchain
+    // 1️⃣ Upload report to IPFS via backend
+    const ipfsResponse = await axios.post(
+      "http://127.0.0.1:5000/upload-report",
+      {
+        reportText: records.diagnosis,
+      }
+    );
+
+    const ipfsHash = ipfsResponse.data.ipfsHash;
+
+    // 2️⃣ Save data + IPFS hash on blockchain
     await contract.methods
-      .addRecord(records.name, parseInt(records.age), records.diagnosis)
+      .addRecord(
+        records.name,
+        parseInt(records.age),
+        records.diagnosis,
+        ipfsHash
+      )
       .send({ from: account });
 
-    // 2️⃣ Send data to backend → AI
-    const aiResponse = await axios.post("http://127.0.0.1:5000/analyze", {
-      age: parseInt(records.age),
-      diagnosis: records.diagnosis,
-    });
+    // 3️⃣ AI analysis
+    const aiResponse = await axios.post(
+      "http://127.0.0.1:5000/analyze",
+      {
+        age: parseInt(records.age),
+        diagnosis: records.diagnosis,
+      }
+    );
 
     setAiResult(aiResponse.data);
 
-    alert("✅ Record added successfully to blockchain!");
+    alert("✅ Record added with IPFS + AI + Blockchain!");
   } catch (error) {
-    alert("❌ Error while adding record");
     console.error(error);
+    alert("❌ Error while processing record");
   }
 };
+
 
 
   return (
