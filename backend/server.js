@@ -10,6 +10,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.post("/analyze", async (req, res) => {
+  try {
+    const { age, diagnosis } = req.body;
+
+    const aiResponse = await axios.post(
+      "http://127.0.0.1:7000/predict",
+      {
+        age: age,
+        diagnosis: diagnosis,
+      }
+    );
+
+    res.json({
+      risk_level: aiResponse.data.risk_level,
+      explanation: aiResponse.data.explanation,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "AI service not reachable" });
+  }
+});
+
+
 // Needed for ES module path handling
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

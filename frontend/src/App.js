@@ -7,6 +7,8 @@ function App() {
   const [account, setAccount] = useState("");
   const [contract, setContract] = useState(null);
   const [records, setRecords] = useState({ name: "", age: "", diagnosis: "" });
+  const [aiResult, setAiResult] = useState(null);
+
 
   useEffect(() => {
     loadBlockchain();
@@ -37,16 +39,33 @@ function App() {
   };
 
   // Function to add new patient record
-  const addRecord = async () => {
-    if (contract) {
-      await contract.methods
-        .addRecord(records.name, parseInt(records.age), records.diagnosis)
-        .send({ from: account });
-      alert("✅ Record added successfully to blockchain!");
-    } else {
-      alert("Contract not loaded properly.");
-    }
-  };
+const addRecord = async () => {
+  if (!contract) {
+    alert("Contract not loaded properly.");
+    return;
+  }
+
+  try {
+    // 1️⃣ Save record to blockchain
+    await contract.methods
+      .addRecord(records.name, parseInt(records.age), records.diagnosis)
+      .send({ from: account });
+
+    // 2️⃣ Send data to backend → AI
+    const aiResponse = await axios.post("http://127.0.0.1:5000/analyze", {
+      age: parseInt(records.age),
+      diagnosis: records.diagnosis,
+    });
+
+    setAiResult(aiResponse.data);
+
+    alert("✅ Record added successfully to blockchain!");
+  } catch (error) {
+    alert("❌ Error while adding record");
+    console.error(error);
+  }
+};
+
 
   return (
     <div className="app-container">
@@ -74,7 +93,16 @@ function App() {
         />
         <button onClick={addRecord}>Add Record</button>
       </div>
+      {aiResult && (
+  <div className="ai-result">
+    <h3>🧠 AI Risk Analysis</h3>
+    <p><strong>Risk Level:</strong> {aiResult.risk_level}</p>
+    <p><strong>Explanation:</strong> {aiResult.explanation}</p>
+  </div>
+)}
+
     </div>
+    
   );
 }
 
