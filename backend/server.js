@@ -1,3 +1,4 @@
+import sqlite3 from "sqlite3";
 import { create } from "ipfs-http-client";
 import express from "express";
 import cors from "cors";
@@ -6,6 +7,28 @@ import Web3 from "web3";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+
+const db = new sqlite3.Database("./healthcare.db", (err) => {
+  if (err) {
+    console.error("Database connection error", err);
+  } else {
+    console.log("✅ SQLite database connected");
+  }
+});
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS patient_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    age INTEGER,
+    diagnosis TEXT,
+    ipfs_hash TEXT,
+    risk_level TEXT,
+    explanation TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 
 const ipfs = create({
   host: "localhost",
@@ -105,6 +128,31 @@ app.post("/api/analyze", async (req, res) => {
     res.status(500).json({ error: "AI service unavailable" });
   }
 });
+
+app.post("/save-record", (req, res) => {
+  const {
+    name,
+    age,
+    diagnosis,
+    ipfsHash,
+    risk_level,
+    explanation,
+  } = req.body;
+
+  db.run(
+    `INSERT INTO patient_records 
+     (name, age, diagnosis, ipfs_hash, risk_level, explanation)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, age, diagnosis, ipfsHash, risk_level, explanation],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: "DB insert failed" });
+      }
+      res.json({ message: "Record saved to database" });
+    }
+  );
+});
+
 
 // Start server
 const PORT = 5000;

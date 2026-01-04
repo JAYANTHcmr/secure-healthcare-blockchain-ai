@@ -77,6 +77,17 @@ const addRecord = async () => {
 
     setAiResult(aiResponse.data);
 
+    // 4️⃣ Save record into database
+await axios.post("http://127.0.0.1:5000/save-record", {
+  name: records.name,
+  age: parseInt(records.age),
+  diagnosis: records.diagnosis,
+  ipfsHash: ipfsHash,
+  risk_level: aiResponse.data.risk_level,
+  explanation: aiResponse.data.explanation,
+});
+
+
     alert("✅ Record added with IPFS + AI + Blockchain!");
   } catch (error) {
     console.error(error);
