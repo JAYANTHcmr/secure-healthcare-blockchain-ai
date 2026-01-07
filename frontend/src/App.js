@@ -18,10 +18,11 @@ function App() {
   const loadBlockchain = async () => {
     if (window.ethereum) {
 // 🔴 FORCE MetaMask to Ganache
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0x539" }], // Ganache (1337)
-    });
+
+    // await window.ethereum.request({
+    //   method: "wallet_switchEthereumChain",
+    //   params: [{ chainId: "0x539" }], // Ganache (1337)
+    // });
 
       const web3 = new Web3(window.ethereum);
       await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -29,7 +30,8 @@ function App() {
       setAccount(accounts[0]);
 
       // Paste your deployed contract address here 👇
-      const contractAddress = "0x4a9E0E403d984AcDeE55C01FC08eeD2068e59B50";
+      const contractAddress = "0x4B6f3190c22E9ee14fCF73e05621765EBf19735d";
+
       const abi = await (await fetch("/PatientRecords.json")).json();
       const deployedContract = new web3.eth.Contract(abi.abi, contractAddress);
       setContract(deployedContract);
