@@ -94,16 +94,13 @@ app.post("/upload-report", async (req, res) => {
 });
 
 /* ===================== DATABASE SAVE ===================== */
-
 app.post("/save-record", (req, res) => {
-  const {
-    name,
-    age,
-    diagnosis,
-    ipfsHash,
-    risk_level,
-    explanation,
-  } = req.body;
+  const { name, age, diagnosis, ipfsHash, risk_level, explanation } = req.body;
+
+  if (!name || !age || !diagnosis || !ipfsHash) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
 
   db.run(
     `INSERT INTO patient_records 
@@ -124,6 +121,11 @@ app.post("/save-record", (req, res) => {
 /* ===================== SERVER START ===================== */
 
 const PORT = 5000;
+app.use((err, req, res, next) => {
+  console.error("🔥 Unhandled Backend Error:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Backend server running on port ${PORT}`);
 });
